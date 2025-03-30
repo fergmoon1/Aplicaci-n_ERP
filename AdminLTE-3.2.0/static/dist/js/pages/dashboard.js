@@ -65,6 +65,7 @@ $(function () {
     RU: 3000 // Russia
   }
   // World map by jvectormap
+  /*
   $('#world-map').vectorMap({
     map: 'usa_en',
     backgroundColor: 'transparent',
@@ -89,7 +90,7 @@ $(function () {
         el.html(el.html() + ': ' + visitorsData[code] + ' new visitors')
       }
     }
-  })
+  }) */
 
   // Sparkline charts
   var sparkline1 = new Sparkline($('#sparkline-1')[0], { width: 80, height: 50, lineColor: '#92c1dc', endColor: '#ebf4f9' })

@@ -9,7 +9,6 @@
     <!-- Small boxes (Stat box) -->
     <div class="row">
       <div class="col-lg-3 col-6">
-        <!-- small box -->
         <div class="small-box bg-info">
           <div class="inner">
             <h3>{{ total_ventas | round(2) }}</h3>
@@ -20,9 +19,7 @@
           </div>
         </div>
       </div>
-      <!-- ./col -->
       <div class="col-lg-3 col-6">
-        <!-- small box -->
         <div class="small-box bg-success">
           <div class="inner">
             <h3>{{ pedidos_pendientes }}</h3>
@@ -33,9 +30,7 @@
           </div>
         </div>
       </div>
-      <!-- ./col -->
       <div class="col-lg-3 col-6">
-        <!-- small box -->
         <div class="small-box bg-warning">
           <div class="inner">
             <h3>{{ alertas_stock }}</h3>
@@ -46,9 +41,7 @@
           </div>
         </div>
       </div>
-      <!-- ./col -->
       <div class="col-lg-3 col-6">
-        <!-- small box -->
         <div class="small-box bg-danger">
           <div class="inner">
             <h3>{{ clientes_nuevos }}</h3>
@@ -59,13 +52,11 @@
           </div>
         </div>
       </div>
-      <!-- ./col -->
     </div>
     <!-- /.row -->
 
     <!-- Secciones originales -->
     <div class="row">
-      <!-- Productos más vendidos -->
       <div class="col-md-6">
         <div class="card">
           <div class="card-header">
@@ -96,7 +87,6 @@
         </div>
       </div>
 
-      <!-- Pedidos por estado -->
       <div class="col-md-6">
         <div class="card">
           <div class="card-header">
@@ -122,7 +112,6 @@
       </div>
     </div>
 
-    <!-- Ingresos por mes -->
     <div class="row">
       <div class="col-md-12">
         <div class="card">
@@ -151,7 +140,7 @@
       </div>
     </div>
 
-    <!-- Nuevas secciones con gráficos -->
+    <!-- Gráficas -->
     <div class="row">
       <!-- Gráfico de Ingresos por Mes -->
       <div class="col-md-6">
@@ -169,7 +158,7 @@
       <div class="col-md-6">
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Gr##### Gráfico de Pedidos por Estado</h3>
+            <h3 class="card-title">Gráfico de Pedidos por Estado</h3>
           </div>
           <div class="card-body">
             <canvas id="pedidosPorEstadoChart" height="200"></canvas>
@@ -178,9 +167,9 @@
       </div>
     </div>
 
-    <!-- Gráfico de Productos Más Vendidos -->
     <div class="row">
-      <div class="col-md-12">
+      <!-- Gráfico de Productos Más Vendidos -->
+      <div class="col-md-6">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Gráfico de Productos Más Vendidos</h3>
@@ -190,128 +179,384 @@
           </div>
         </div>
       </div>
+
+      <!-- Gráfico de Clientes Nuevos por Mes -->
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Gráfico de Clientes Nuevos por Mes</h3>
+          </div>
+          <div class="card-body">
+            <canvas id="clientesNuevosPorMesChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Gráfico de Alertas de Stock por Producto -->
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Gráfico de Alertas de Stock por Producto</h3>
+          </div>
+          <div class="card-body">
+            <canvas id="alertasStockPorProductoChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Scripts para los gráficos -->
   <script>
-    // Datos para los gráficos (pasados desde Flask/Jinja)
-    const ingresosPorMes = {{ ingresos_por_mes | tojson }};
-    const pedidosPorEstado = {{ pedidos_por_estado | tojson }};
-    const productosMasVendidos = {{ productos_mas_vendidos | tojson }};
+    document.addEventListener('DOMContentLoaded', function() {
+      // Datos para los gráficos (pasados desde Flask/Jinja)
+      const ingresosPorMes = {{ ingresos_por_mes | tojson }};
+      const pedidosPorEstado = {{ pedidos_por_estado | tojson }};
+      const productosMasVendidos = {{ productos_mas_vendidos | tojson }};
+      const clientesNuevosPorMes = {{ clientes_nuevos_por_mes | tojson }};
+      const alertasStockPorProducto = {{ alertas_stock_por_producto | tojson }};
 
-    // Gráfico de Ingresos por Mes (Barras)
-    const ctxIngresos = document.getElementById('ingresosPorMesChart').getContext('2d');
-    new Chart(ctxIngresos, {
-      type: 'bar',
-      data: {
-        labels: ingresosPorMes.map(item => item.mes),
-        datasets: [{
-          label: 'Ingreso Total',
-          data: ingresosPorMes.map(item => item.ingreso),
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Ingresos'
+      // Gráfico de Ingresos por Mes (Barras)
+      const ctxIngresos = document.getElementById('ingresosPorMesChart').getContext('2d');
+      new Chart(ctxIngresos, {
+        type: 'bar',
+        data: {
+          labels: ingresosPorMes.map(item => item.mes),
+          datasets: [{
+            label: 'Ingresos (USD)',
+            data: ingresosPorMes.map(item => item.ingreso),
+            backgroundColor: [
+              'rgba(54, 162, 235, 0.7)',
+              'rgba(75, 192, 192, 0.7)',
+              'rgba(153, 102, 255, 0.7)',
+              'rgba(255, 159, 64, 0.7)',
+              'rgba(255, 99, 132, 0.7)',
+              'rgba(54, 162, 235, 0.7)'
+            ],
+            borderColor: [
+              'rgba(54, 162, 235, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+              'rgba(255, 159, 64, 1)',
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)'
+            ],
+            borderWidth: 2,
+            borderRadius: 5,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+            easing: 'easeInOutQuad'
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Ingresos (USD)',
+                font: { size: 14 }
+              },
+              ticks: {
+                callback: function(value) {
+                  return value.toFixed(2);
+                }
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Mes',
+                font: { size: 14 }
+              }
             }
           },
-          x: {
-            title: {
+          plugins: {
+            legend: {
               display: true,
-              text: 'Mes'
+              position: 'top',
+              labels: { font: { size: 14 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  label += context.parsed.y.toFixed(2) + ' USD';
+                  return label;
+                }
+              }
             }
           }
+        }
+      });
+
+      // Gráfico de Pedidos por Estado (Dona)
+      const ctxPedidos = document.getElementById('pedidosPorEstadoChart').getContext('2d');
+      new Chart(ctxPedidos, {
+        type: 'doughnut',
+        data: {
+          labels: ['Pendiente', 'Completado', 'Cancelado'],
+          datasets: [{
+            data: [
+              pedidosPorEstado.pendiente || 0,
+              pedidosPorEstado.completado || 0,
+              pedidosPorEstado.cancelado || 0
+            ],
+            backgroundColor: [
+              'rgba(255, 206, 86, 0.7)',
+              'rgba(75, 192, 192, 0.7)',
+              'rgba(255, 99, 132, 0.7)'
+            ],
+            borderColor: [
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(255, 99, 132, 1)'
+            ],
+            borderWidth: 2,
+            hoverOffset: 10
+          }]
         },
-        plugins: {
-          legend: {
-            display: true,
-            position: 'top'
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+            easing: 'easeInOutQuad'
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { font: { size: 14 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.label || '';
+                  if (label) label += ': ';
+                  label += context.raw + ' pedidos';
+                  return label;
+                }
+              }
+            }
           }
         }
-      }
-    });
+      });
 
-    // Gráfico de Pedidos por Estado (Dona)
-    const ctxPedidos = document.getElementById('pedidosPorEstadoChart').getContext('2d');
-    new Chart(ctxPedidos, {
-      type: 'doughnut',
-      data: {
-        labels: ['Pendiente', 'Completado', 'Cancelado'],
-        datasets: [{
-          data: [
-            pedidosPorEstado.pendiente || 0,
-            pedidosPorEstado.completado || 0,
-            pedidosPorEstado.cancelado || 0
-          ],
-          backgroundColor: [
-            'rgba(255, 206, 86, 0.6)', // Amarillo para Pendiente
-            'rgba(75, 192, 192, 0.6)', // Verde para Completado
-            'rgba(255, 99, 132, 0.6)'  // Rojo para Cancelado
-          ],
-          borderColor: [
-            'rgba(255, 206, 86, 1)',
-            'rgba(75, 192, 192, 1)',
-            'rgba(255, 99, 132, 1)'
-          ],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        plugins: {
-          legend: {
-            position: 'top'
-          }
-        }
-      }
-    });
-
-    // Gráfico de Productos Más Vendidos (Barras Horizontales)
-    const ctxProductos = document.getElementById('productosMasVendidosChart').getContext('2d');
-    new Chart(ctxProductos, {
-      type: 'bar',
-      data: {
-        labels: productosMasVendidos.map(item => item.nombre),
-        datasets: [{
-          label: 'Cantidad Vendida',
-          data: productosMasVendidos.map(item => item.total_vendido),
-          backgroundColor: 'rgba(153, 102, 255, 0.6)',
-          borderColor: 'rgba(153, 102, 255, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        indexAxis: 'y', // Esto hace que las barras sean horizontales
-        scales: {
-          x: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Cantidad Vendida'
+      // Gráfico de Productos Más Vendidos (Barras Horizontales)
+      const ctxProductos = document.getElementById('productosMasVendidosChart').getContext('2d');
+      new Chart(ctxProductos, {
+        type: 'bar',
+        data: {
+          labels: productosMasVendidos.map(item => item.nombre),
+          datasets: [{
+            label: 'Cantidad Vendida',
+            data: productosMasVendidos.map(item => item.total_vendido),
+            backgroundColor: [
+              'rgba(153, 102, 255, 0.7)',
+              'rgba(54, 162, 235, 0.7)',
+              'rgba(255, 159, 64, 0.7)',
+              'rgba(75, 192, 192, 0.7)',
+              'rgba(255, 99, 132, 0.7)'
+            ],
+            borderColor: [
+              'rgba(153, 102, 255, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 159, 64, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(255, 99, 132, 1)'
+            ],
+            borderWidth: 2,
+            borderRadius: 5,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+            easing: 'easeInOutQuad'
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Cantidad Vendida',
+                font: { size: 14 }
+              },
+              ticks: { stepSize: 1 }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Producto',
+                font: { size: 14 }
+              }
             }
           },
-          y: {
-            title: {
+          plugins: {
+            legend: {
               display: true,
-              text: 'Producto'
+              position: 'top',
+              labels: { font: { size: 14 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  label += context.parsed.x + ' unidades';
+                  return label;
+                }
+              }
             }
           }
+        }
+      });
+
+      // Gráfico de Clientes Nuevos por Mes (Líneas)
+      const ctxClientes = document.getElementById('clientesNuevosPorMesChart').getContext('2d');
+      new Chart(ctxClientes, {
+        type: 'line',
+        data: {
+          labels: clientesNuevosPorMes.map(item => item.mes),
+          datasets: [{
+            label: 'Clientes Nuevos',
+            data: clientesNuevosPorMes.map(item => item.clientes),
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+          }]
         },
-        plugins: {
-          legend: {
-            display: true,
-            position: 'top'
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+            easing: 'easeInOutQuad'
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Clientes Nuevos',
+                font: { size: 14 }
+              },
+              ticks: { stepSize: 1 }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Mes',
+                font: { size: 14 }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { font: { size: 14 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  label += context.parsed.y + ' clientes';
+                  return label;
+                }
+              }
+            }
           }
         }
-      }
+      });
+
+      // Gráfico de Alertas de Stock por Producto (Barras Horizontales)
+      const ctxAlertas = document.getElementById('alertasStockPorProductoChart').getContext('2d');
+      new Chart(ctxAlertas, {
+        type: 'bar',
+        data: {
+          labels: alertasStockPorProducto.map(item => item.nombre),
+          datasets: [{
+            label: 'Stock Actual',
+            data: alertasStockPorProducto.map(item => item.stock),
+            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 2,
+            borderRadius: 5,
+            borderSkipped: false
+          }, {
+            label: 'Umbral de Stock',
+            data: alertasStockPorProducto.map(item => item.umbral),
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            borderRadius: 5,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+            easing: 'easeInOutQuad'
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Cantidad',
+                font: { size: 14 }
+              },
+              ticks: { stepSize: 1 }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Producto',
+                font: { size: 14 }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { font: { size: 14 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  label += context.parsed.x + ' unidades';
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
     });
   </script>
 {% endblock %}
-

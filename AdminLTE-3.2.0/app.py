@@ -1,18 +1,20 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate  # Nueva importación
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from functools import wraps
 import bcrypt
 from sqlalchemy.sql import text
+from sqlalchemy import func
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email
 from wtforms import SelectField, IntegerField
 from wtforms.validators import NumberRange
-
+from datetime import timezone
 
 # Crear la aplicación Flask
 app = Flask(__name__)
@@ -267,7 +269,7 @@ def logout():
 @app.route('/')
 @login_required
 def home():
-    fecha_inicio_mes = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    fecha_inicio_mes = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     pedidos_completados = Pedido.query.filter(
         Pedido.estado == 'completado',
         Pedido.fecha >= fecha_inicio_mes
@@ -275,16 +277,16 @@ def home():
     total_ventas = sum(
         sum(pedido_producto.producto.precio * pedido_producto.cantidad for pedido_producto in pedido.productos)
         for pedido in pedidos_completados
-    )
+    ) if pedidos_completados else 0.0
 
     pedidos_pendientes = Pedido.query.filter_by(estado='pendiente').count()
-    umbral_stock = int(Configuracion.query.filter_by(clave='umbral_stock').first().valor)
+    umbral_stock = int(Configuracion.query.filter_by(clave='umbral_stock').first().valor) if Configuracion.query.filter_by(clave='umbral_stock').first() else 5
     alertas_stock = Producto.query.filter(Producto.stock < umbral_stock).count()
-    fecha_ultimos_30_dias = datetime.now() - timedelta(days=30)
+    fecha_ultimos_30_dias = datetime.now(timezone.utc) - timedelta(days=30)
     clientes_nuevos = Cliente.query.filter(Cliente.fecha_registro >= fecha_ultimos_30_dias).count()
 
     from sqlalchemy import func
-    # Convertir productos_mas_vendidos a una lista de diccionarios
+    # Productos más vendidos
     productos_mas_vendidos_query = (
         db.session.query(
             Producto.nombre,
@@ -300,18 +302,17 @@ def home():
         .limit(5)
         .all()
     )
-    # Convertir los resultados a diccionarios
     productos_mas_vendidos = [
         {
             'nombre': row.nombre,
-            'precio': float(row.precio),  # Convertir a float para asegurar serialización
-            'total_vendido': int(row.total_vendido),  # Convertir a int
-            'ingreso_total': float(row.ingreso_total)  # Convertir a float
+            'precio': float(row.precio) if row.precio else 0.0,
+            'total_vendido': int(row.total_vendido) if row.total_vendido else 0,
+            'ingreso_total': float(row.ingreso_total) if row.ingreso_total else 0.0
         }
         for row in productos_mas_vendidos_query
-    ]
+    ] if productos_mas_vendidos_query else []
 
-    # Convertir pedidos_por_estado a un diccionario simple
+    # Pedidos por estado
     pedidos_por_estado_query = (
         db.session.query(
             Pedido.estado,
@@ -320,11 +321,11 @@ def home():
         .group_by(Pedido.estado)
         .all()
     )
-    pedidos_por_estado = {estado: int(total) for estado, total in pedidos_por_estado_query}
+    pedidos_por_estado = {estado: int(total) for estado, total in pedidos_por_estado_query} if pedidos_por_estado_query else {}
 
-    # Asegurar que ingresos_por_mes sea serializable
+    # Ingresos por mes
     ingresos_por_mes = []
-    fecha_actual = datetime.now()
+    fecha_actual = datetime.now(timezone.utc)
     for i in range(6):
         mes_inicio = (fecha_actual - relativedelta(months=i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         mes_fin = mes_inicio + relativedelta(months=1) - timedelta(seconds=1)
@@ -336,11 +337,36 @@ def home():
         ingreso_mes = sum(
             sum(pedido_producto.producto.precio * pedido_producto.cantidad for pedido_producto in pedido.productos)
             for pedido in pedidos_mes
-        )
+        ) if pedidos_mes else 0.0
         ingresos_por_mes.append({
             'mes': mes_inicio.strftime('%B %Y'),
-            'ingreso': float(ingreso_mes)  # Convertir a float para asegurar serialización
+            'ingreso': float(ingreso_mes)
         })
+
+    # Clientes nuevos por mes (últimos 6 meses)
+    clientes_nuevos_por_mes = []
+    for i in range(6):
+        mes_inicio = (fecha_actual - relativedelta(months=i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        mes_fin = mes_inicio + relativedelta(months=1) - timedelta(seconds=1)
+        clientes_mes = Cliente.query.filter(
+            Cliente.fecha_registro >= mes_inicio,
+            Cliente.fecha_registro <= mes_fin
+        ).count()
+        clientes_nuevos_por_mes.append({
+            'mes': mes_inicio.strftime('%B %Y'),
+            'clientes': int(clientes_mes)
+        })
+
+    # Alertas de stock por producto
+    productos_bajo_stock = Producto.query.filter(Producto.stock < umbral_stock).all()
+    alertas_stock_por_producto = [
+        {
+            'nombre': producto.nombre,
+            'stock': int(producto.stock),
+            'umbral': int(umbral_stock)
+        }
+        for producto in productos_bajo_stock
+    ] if productos_bajo_stock else []
 
     return render_template('index.html', 
                          total_ventas=total_ventas, 
@@ -349,7 +375,9 @@ def home():
                          clientes_nuevos=clientes_nuevos,
                          productos_mas_vendidos=productos_mas_vendidos,
                          pedidos_por_estado=pedidos_por_estado,
-                         ingresos_por_mes=ingresos_por_mes)
+                         ingresos_por_mes=ingresos_por_mes,
+                         clientes_nuevos_por_mes=clientes_nuevos_por_mes,
+                         alertas_stock_por_producto=alertas_stock_por_producto)
 
 
 @app.route('/clientes', methods=['GET', 'POST'])
