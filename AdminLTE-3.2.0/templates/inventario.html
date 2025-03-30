@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventario{% endblock %}
+{% block page_title %}Inventario{% endblock %}
+{% block breadcrumb %}Inventario{% endblock %}
+
+{% block content %}
+  <div class="container-fluid">
+    <!-- Mensajes de éxito o error -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Aviso persistente de productos con stock bajo -->
+    {% set umbral = configuracion.umbral_stock | default(10, true) %}
+    {% set productos_bajo_stock = inventarios | selectattr('producto.stock', 'lt', umbral|int) | list %}
+    {% if productos_bajo_stock %}
+      <div class="card bg-warning">
+        <div class="card-header">
+          <h3 class="card-title">Alerta de Stock Bajo</h3>
+        </div>
+        <div class="card-body">
+          <p>Los siguientes productos tienen un stock por debajo del umbral mínimo ({{ umbral }} unidades):</p>
+          <ul>
+            {% for inventario in productos_bajo_stock %}
+              <li>{{ inventario.producto.nombre }} (Stock actual: {{ inventario.producto.stock }})</li>
+            {% endfor %}
+          </ul>
+          <p>Por favor, actualice el inventario para evitar problemas de disponibilidad.</p>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Formulario para Crear/Editar Registro de Inventario -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Agregar/Editar Registro de Inventario</h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('inventario') }}">
+          {{ form.hidden_tag() }}
+          <!-- Campo oculto para el ID del inventario (en modo edición) -->
+          <input type="hidden" name="inventario_id" value="{{ inventario_a_editar.id if inventario_a_editar else '' }}">
+          
+          <div class="form-group">
+            <label for="producto_id">Producto</label>
+            {{ form.producto_id(class="form-control", required=True) }}
+            {% if form.producto_id.errors %}
+              {% for error in form.producto_id.errors %}
+                <span class="text-danger">{{ error }}</span><br>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <div class="form-group">
+            <label for="cantidad">Cantidad</label>
+            {{ form.cantidad(class="form-control", placeholder="Ingrese la cantidad", required=True) }}
+            {% if form.cantidad.errors %}
+              {% for error in form.cantidad.errors %}
+                <span class="text-danger">{{ error }}</span><br>
+              {% endfor %}
+            {% endif %}
+          </div>
+          {{ form.submit(class="btn btn-primary") }}
+          <a href="{{ url_for('inventario') }}" class="btn btn-secondary">Limpiar</a>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tabla de Inventario -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Lista de Inventario</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Fecha de Actualización</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inventario in inventarios %}
+              <tr {% if inventario.producto.stock < umbral|int %}class="table-danger"{% endif %}>
+                <td>{{ inventario.id }}</td>
+                <td>{{ inventario.producto.nombre }}</td>
+                <td>{{ inventario.cantidad }}</td>
+                <td>{{ inventario.fecha_actualizacion.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>
+                  <a href="{{ url_for('inventario', editar=inventario.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                  <a href="{{ url_for('eliminar_inventario', id=inventario.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este registro de inventario? Esto afectará el stock del producto.');">Eliminar</a>
+                  <button class="btn btn-sm btn-info" type="button" data-toggle="collapse" data-target="#historial-{{ inventario.id }}" aria-expanded="false" aria-controls="historial-{{ inventario.id }}">
+                    Historial
+                  </button>
+                </td>
+              </tr>
+              <!-- Historial de movimientos -->
+              <tr class="collapse" id="historial-{{ inventario.id }}">
+                <td colspan="5">
+                  <div class="card">
+                    <div class="card-header">
+                      <h4 class="card-title">Historial de Movimientos - {{ inventario.producto.nombre }}</h4>
+                    </div>
+                    <div class="card-body">
+                      <table class="table table-bordered table-striped">
+                        <thead>
+                          <tr>
+                            <th>Fecha</th>
+                            <th>Tipo de Movimiento</th>
+                            <th>Cantidad</th>
+                            <th>Usuario</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for movimiento in inventario.producto.movimientos %}
+                            <tr>
+                              <td>{{ movimiento.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                              <td>{{ movimiento.tipo_movimiento | capitalize }}</td>
+                              <td>{{ movimiento.cantidad }}</td>
+                              <td>{{ movimiento.usuario.nombre }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

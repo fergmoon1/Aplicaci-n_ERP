@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-wrapper">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Gestión de Pedidos</h1>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Agregar/Editar Pedido</h3>
+            </div>
+            <div class="card-body">
+              <form method="POST" action="{{ url_for('pedidos') }}">
+                <input type="hidden" name="pedido_id" value="{{ pedido_a_editar.id if pedido_a_editar else '' }}">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="cliente_id">Cliente</label>
+                      <select name="cliente_id" class="form-control" required>
+                        <option value="">Seleccione un cliente</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if form_data and form_data.cliente_id == cliente.id|string or pedido_a_editar and pedido_a_editar.cliente_id == cliente.id %}selected{% endif %}>{{ cliente.nombre }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="fecha">Fecha</label>
+                      <input type="date" name="fecha" class="form-control" value="{{ form_data.fecha if form_data else pedido_a_editar.fecha.strftime('%Y-%m-%d') if pedido_a_editar else '' }}" required>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="estado">Estado</label>
+                      <select name="estado" class="form-control" required>
+                        <option value="pendiente" {% if form_data and form_data.estado == 'pendiente' or pedido_a_editar and pedido_a_editar.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="completado" {% if form_data and form_data.estado == 'completado' or pedido_a_editar and pedido_a_editar.estado == 'completado' %}selected{% endif %}>Completado</option>
+                        <option value="cancelado" {% if form_data and form_data.estado == 'cancelado' or pedido_a_editar and pedido_a_editar.estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Productos</label>
+                  <div id="productos-container">
+                    {% if form_data and form_data.productos %}
+                      {% for producto_id, cantidad in form_data.productos %}
+                      <div class="row mb-2 producto-row">
+                        <div class="col-md-5">
+                          <select name="producto_ids[]" class="form-control" required>
+                            <option value="">Seleccione un producto</option>
+                            {% for producto in productos %}
+                            <option value="{{ producto.id }}" {% if producto_id == producto.id|string %}selected{% endif %}>{{ producto.nombre }} (Stock: {{ producto.stock }})</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class="col-md-5">
+                          <input type="number" name="cantidades[]" class="form-control" value="{{ cantidad }}" min="1" required>
+                        </div>
+                        <div class="col-md-2">
+                          <button type="button" class="btn btn-danger btn-sm eliminar-producto">Eliminar</button>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    {% elif pedido_a_editar %}
+                      {% for pedido_producto in pedido_a_editar.productos %}
+                      <div class="row mb-2 producto-row">
+                        <div class="col-md-5">
+                          <select name="producto_ids[]" class="form-control" required>
+                            <option value="">Seleccione un producto</option>
+                            {% for producto in productos %}
+                            <option value="{{ producto.id }}" {% if pedido_producto.producto_id == producto.id %}selected{% endif %}>{{ producto.nombre }} (Stock: {{ producto.stock }})</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class="col-md-5">
+                          <input type="number" name="cantidades[]" class="form-control" value="{{ pedido_producto.cantidad }}" min="1" required>
+                        </div>
+                        <div class="col-md-2">
+                          <button type="button" class="btn btn-danger btn-sm eliminar-producto">Eliminar</button>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    {% else %}
+                      <div class="row mb-2 producto-row">
+                        <div class="col-md-5">
+                          <select name="producto_ids[]" class="form-control" required>
+                            <option value="">Seleccione un producto</option>
+                            {% for producto in productos %}
+                            <option value="{{ producto.id }}">{{ producto.nombre }} (Stock: {{ producto.stock }})</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class="col-md-5">
+                          <input type="number" name="cantidades[]" class="form-control" min="1" required>
+                        </div>
+                        <div class="col-md-2">
+                          <button type="button" class="btn btn-danger btn-sm eliminar-producto">Eliminar</button>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </div>
+                  <button type="button" id="agregar-producto" class="btn btn-secondary btn-sm">Agregar Producto</button>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a href="{{ url_for('pedidos') }}" class="btn btn-secondary">Limpiar</a>
+              </form>
+            </div>
+          </div>
+
+          <!-- Nueva sección para mostrar el historial de movimientos -->
+          {% if pedido_a_editar and movimientos %}
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Historial de Movimientos de Inventario (Productos del Pedido)</h3>
+            </div>
+            <div class="card-body">
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Tipo de Movimiento</th>
+                    <th>Cantidad</th>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for movimiento in movimientos %}
+                  <tr>
+                    <td>{{ movimiento.producto.nombre }}</td>
+                    <td>{{ movimiento.tipo_movimiento }}</td>
+                    <td>{{ movimiento.cantidad }}</td>
+                    <td>{{ movimiento.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ movimiento.usuario.nombre }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Buscar Pedidos</h3>
+            </div>
+            <div class="card-body">
+              <form method="GET" action="{{ url_for('pedidos') }}">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="cliente_id">Cliente</label>
+                      <select name="cliente_id" class="form-control">
+                        <option value="">Todos los clientes</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if request.args.get('cliente_id') == cliente.id|string %}selected{% endif %}>{{ cliente.nombre }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="fecha">Fecha</label>
+                      <input type="date" name="fecha" class="form-control" value="{{ request.args.get('fecha', '') }}">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="estado">Estado</label>
+                      <select name="estado" class="form-control">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente" {% if request.args.get('estado') == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="completado" {% if request.args.get('estado') == 'completado' %}selected{% endif %}>Completado</option>
+                        <option value="cancelado" {% if request.args.get('estado') == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Buscar</button>
+                <a href="{{ url_for('pedidos') }}" class="btn btn-secondary">Limpiar</a>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Lista de Pedidos</h3>
+            </div>
+            <div class="card-body">
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Productos</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for pedido in pedidos %}
+                  <tr>
+                    <td>{{ pedido.id }}</td>
+                    <td>{{ pedido.cliente.nombre }}</td>
+                    <td>{{ pedido.fecha.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ pedido.estado }}</td>
+                    <td>
+                      <ul>
+                        {% for pedido_producto in pedido.productos %}
+                        <li>{{ pedido_producto.producto.nombre }} (Cantidad: {{ pedido_producto.cantidad }})</li>
+                        {% endfor %}
+                      </ul>
+                    </td>
+                    <td>
+                      <a href="{{ url_for('pedidos', editar=pedido.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                      {% if current_user.rol == 'admin' %}
+                        <a href="{{ url_for('eliminar_pedido', id=pedido.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este pedido? Esto afectará el stock de los productos.');">Eliminar</a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="card-footer">
+              <nav>
+                <ul class="pagination">
+                  {% if paginacion.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('pedidos', page=paginacion.prev_num, cliente_id=request.args.get('cliente_id', ''), fecha=request.args.get('fecha', ''), estado=request.args.get('estado', '')) }}">Anterior</a>
+                  </li>
+                  {% else %}
+                  <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                  {% endif %}
+                  <li class="page-item disabled"><span class="page-link">{{ paginacion.page }}</span></li>
+                  {% if paginacion.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('pedidos', page=paginacion.next_num, cliente_id=request.args.get('cliente_id', ''), fecha=request.args.get('fecha', ''), estado=request.args.get('estado', '')) }}">Siguiente</a>
+                  </li>
+                  {% else %}
+                  <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+                  {% endif %}
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.getElementById('agregar-producto').addEventListener('click', function() {
+    const container = document.getElementById('productos-container');
+    const row = document.createElement('div');
+    row.className = 'row mb-2 producto-row';
+    row.innerHTML = `
+      <div class="col-md-5">
+        <select name="producto_ids[]" class="form-control" required>
+          <option value="">Seleccione un producto</option>
+          {% for producto in productos %}
+          <option value="{{ producto.id }}">{{ producto.nombre }} (Stock: {{ producto.stock }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <input type="number" name="cantidades[]" class="form-control" min="1" required>
+      </div>
+      <div class="col-md-2">
+        <button type="button" class="btn btn-danger btn-sm eliminar-producto">Eliminar</button>
+      </div>
+    `;
+    container.appendChild(row);
+    actualizarEventosEliminar();
+  });
+
+  function actualizarEventosEliminar() {
+    const botonesEliminar = document.querySelectorAll('.eliminar-producto');
+    botonesEliminar.forEach(boton => {
+      boton.removeEventListener('click', eliminarFila); // Evitar múltiples listeners
+      boton.addEventListener('click', eliminarFila);
+    });
+  }
+
+  function eliminarFila(event) {
+    const row = event.target.closest('.producto-row');
+    if (document.querySelectorAll('.producto-row').length > 1) {
+      row.remove();
+    } else {
+      alert('Debe haber al menos un producto en el pedido.');
+    }
+  }
+
+  actualizarEventosEliminar();
+</script>
+{% endblock %}

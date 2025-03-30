@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Productos{% endblock %}
+{% block page_title %}Productos{% endblock %}
+{% block breadcrumb %}Productos{% endblock %}
+
+{% block content %}
+  <div class="container-fluid">
+    <!-- Mensajes de éxito o error -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Formulario para Crear/Editar Producto -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Agregar/Editar Producto</h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('productos') }}">
+          <!-- Campo oculto para el ID del producto (en modo edición) -->
+          <input type="hidden" name="producto_id" value="{{ producto_a_editar.id if producto_a_editar else '' }}">
+          
+          <div class="form-group">
+            <label for="nombre">Nombre del Producto</label>
+            <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ingrese el nombre del producto" value="{{ form_data.nombre if form_data else (producto_a_editar.nombre if producto_a_editar else '') }}" required>
+          </div>
+          <div class="form-group">
+            <label for="descripcion">Descripción</label>
+            <textarea class="form-control" id="descripcion" name="descripcion" placeholder="Ingrese la descripción del producto">{{ form_data.descripcion if form_data else (producto_a_editar.descripcion if producto_a_editar else '') }}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="precio">Precio</label>
+            <input type="number" step="0.01" class="form-control" id="precio" name="precio" placeholder="Ingrese el precio del producto" value="{{ form_data.precio if form_data else (producto_a_editar.precio if producto_a_editar else '') }}" required>
+          </div>
+          <div class="form-group">
+            <label for="stock">Stock</label>
+            <input type="number" class="form-control" id="stock" name="stock" placeholder="Ingrese el stock del producto" value="{{ form_data.stock if form_data else (producto_a_editar.stock if producto_a_editar else '') }}" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <a href="{{ url_for('productos') }}" class="btn btn-secondary">Limpiar</a>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tabla de Productos -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Lista de Productos</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for producto in productos %}
+              <tr>
+                <td>{{ producto.id }}</td>
+                <td>{{ producto.nombre }}</td>
+                <td>{{ producto.descripcion or 'N/A' }}</td>
+                <td>{{ producto.precio | round(2) }}</td>
+                <td>{{ producto.stock }}</td>
+                <td>
+                  <a href="{{ url_for('productos', editar=producto.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                  <a href="{{ url_for('eliminar_producto', id=producto.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este producto?');">Eliminar</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración{% endblock %}
+{% block breadcrumb %}Configuración{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Configuración del Sistema</h1>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card card-primary">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fas fa-cogs"></i> Parámetros del Sistema</h3>
+            </div>
+            <form id="configForm" method="POST" action="{{ url_for('configuracion') }}">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="umbral_stock">Umbral de Stock Bajo</label>
+                      <input type="number" name="umbral_stock" class="form-control" value="{{ umbral_stock }}" min="0" required>
+                      <small class="form-text text-muted">Número mínimo de unidades para alertas de stock bajo.</small>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="dias_retencion_movimientos">Días de Retención de Movimientos</label>
+                      <input type="number" name="dias_retencion_movimientos" class="form-control" value="{{ dias_retencion }}" min="0" required>
+                      <small class="form-text text-muted">Días que se guardan los movimientos de inventario.</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="moneda">Moneda Predeterminada</label>
+                      <select name="moneda" class="form-control select2" required>
+                        <option value="USD" {% if moneda == 'USD' %}selected{% endif %}>USD</option>
+                        <option value="COP" {% if moneda == 'COP' %}selected{% endif %}>COP</option>
+                        <option value="EUR" {% if moneda == 'EUR' %}selected{% endif %}>EUR</option>
+                      </select>
+                      <small class="form-text text-muted">Moneda para mostrar precios.</small>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="tasa_iva">Tasa de IVA (%)</label>
+                      <input type="number" name="tasa_iva" class="form-control" value="{{ tasa_iva }}" step="0.1" min="0" max="100" required>
+                      <small class="form-text text-muted">Porcentaje de IVA para aplicar a los pedidos.</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card card-danger">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Productos con Stock Bajo</h3>
+            </div>
+            <div class="card-body">
+              {% if productos_bajos %}
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Stock Actual</th>
+                    <th>Umbral</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for producto in productos_bajos %}
+                  <tr>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.stock }}</td>
+                    <td>{{ umbral_stock }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <p class="text-center text-muted">No hay productos con stock bajo.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card card-secondary">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fas fa-history"></i> Historial de Cambios</h3>
+            </div>
+            <div class="card-body">
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Clave</th>
+                    <th>Valor Anterior</th>
+                    <th>Valor Nuevo</th>
+                    <th>Usuario</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for cambio in historial %}
+                  <tr>
+                    <td>{{ cambio.clave }}</td>
+                    <td>{{ cambio.valor_anterior }}</td>
+                    <td>{{ cambio.valor_nuevo }}</td>
+                    <td>{{ cambio.usuario.nombre }}</td>
+                    <td>{{ cambio.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+

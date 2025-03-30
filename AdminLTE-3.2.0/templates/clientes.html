@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Clientes{% endblock %}
+{% block page_title %}Clientes{% endblock %}
+{% block breadcrumb %}Clientes{% endblock %}
+
+{% block content %}
+  <div class="container-fluid">
+    <!-- Formulario para Crear/Editar Cliente -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Agregar/Editar Cliente</h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('clientes') }}">
+          <input type="hidden" name="cliente_id" value="{{ cliente_a_editar.id if cliente_a_editar else '' }}">
+          
+          <div class="form-group">
+            <label for="nombre">Nombre del Cliente</label>
+            <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ingrese el nombre del cliente" value="{{ form_data.nombre if form_data else (cliente_a_editar.nombre if cliente_a_editar else '') }}" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Correo Electrónico</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="Ingrese el correo electrónico" value="{{ form_data.email if form_data else (cliente_a_editar.email if cliente_a_editar else '') }}" required>
+          </div>
+          <div class="form-group">
+            <label for="telefono">Contacto (opcional)</label>
+            <input type="text" class="form-control" id="telefono" name="telefono" placeholder="Ingrese el contacto" value="{{ form_data.telefono if form_data else (cliente_a_editar.telefono if cliente_a_editar else '') }}">
+          </div>
+          <div class="form-group">
+            <label for="direccion">Dirección (opcional)</label>
+            <input type="text" class="form-control" id="direccion" name="direccion" placeholder="Ingrese la dirección" value="{{ form_data.direccion if form_data else (cliente_a_editar.direccion if cliente_a_editar else '') }}">
+          </div>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <a href="{{ url_for('clientes') }}" class="btn btn-secondary">Limpiar</a>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulario de búsqueda -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Buscar Clientes</h3>
+      </div>
+      <div class="card-body">
+        <form method="GET" action="{{ url_for('clientes') }}">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="nombre_search">Nombre</label>
+                <input type="text" class="form-control" id="nombre_search" name="nombre" placeholder="Ingrese el nombre a buscar" value="{{ request.args.get('nombre', '') }}">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="email_search">Email</label>
+                <input type="email" class="form-control" id="email_search" name="email" placeholder="Ingrese el email a buscar" value="{{ request.args.get('email', '') }}">
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Buscar</button>
+          <a href="{{ url_for('clientes') }}" class="btn btn-secondary">Limpiar</a>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tabla de Clientes -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Lista de Clientes</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Dirección</th>
+              <th>Fecha de Registro</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cliente in clientes %}
+              <tr>
+                <td>{{ cliente.id }}</td>
+                <td>{{ cliente.nombre }}</td>
+                <td>{{ cliente.email }}</td>
+                <td>{{ cliente.telefono or 'N/A' }}</td>
+                <td>{{ cliente.direccion or 'N/A' }}</td>
+                <td>{{ cliente.fecha_registro.strftime('%Y-%m-%d') }}</td>
+                <td>
+                  <a href="{{ url_for('clientes', editar=cliente.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                  {% if current_user.is_authenticated and current_user.rol == 'admin' %}
+                    <a href="{{ url_for('eliminar_cliente', id=cliente.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este cliente?');">Eliminar</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}
