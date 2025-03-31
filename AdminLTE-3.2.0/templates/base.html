@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +14,57 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='plugins/daterangepicker/daterangepicker.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='plugins/summernote/summernote-bs4.min.css') }}">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+
+  <!-- CSS personalizado -->
+  <style>
+    /* Ajustar el tamaño de las tarjetas */
+    .small-box {
+      min-height: 120px;
+      padding: 10px;
+    }
+    .small-box h3 {
+      font-size: 1.8rem;
+    }
+    .small-box p {
+      font-size: 0.9rem;
+    }
+    .small-box .icon {
+      font-size: 2.5rem;
+      top: 10px;
+      right: 10px;
+    }
+
+    /* Ajustar el espaciado de las filas */
+    .row {
+      margin-bottom: 15px;
+    }
+
+    /* Estilo para las tablas */
+    .table {
+      font-size: 0.9rem;
+    }
+    .table th, .table td {
+      padding: 8px;
+    }
+
+    /* Ajustar el tamaño de las gráficas */
+    .card-body canvas {
+      max-height: 300px !important;
+    }
+
+    /* Estilo para el formulario de filtro */
+    .card-body form {
+      margin-bottom: 0;
+    }
+    .card-body form .form-control {
+      font-size: 0.9rem;
+    }
+    .card-body form .btn {
+      margin-top: 5px;
+    }
+  </style>
 </head>
+
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
 

@@ -1,12 +1,99 @@
-<form method="POST" action="{{ url_for('login') }}">
-  {{ form.hidden_tag() }}
-  <div class="form-group">
-      <label for="email">{{ form.email.label }}</label>
-      {{ form.email(class="form-control", placeholder="Ingrese su correo electrónico") }}
-  </div>
-  <div class="form-group">
-      <label for="password">{{ form.password.label }}</label>
-      {{ form.password(class="form-control", placeholder="Ingrese su contraseña") }}
-  </div>
-  {{ form.submit(class="btn btn-primary") }}
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Sign In</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <!-- Estilos personalizados -->
+    <style>
+        body {
+          background-image: url('https://i.pinimg.com/736x/05/c1/41/05c14148e257a701b30e8f2626cd00e6.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+        }
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="flex min-h-screen login-container">
+        <!-- Left Side (Formulario de Login) -->
+        <div class="w-full lg:w-1/3 flex flex-col justify-center items-center p-8 bg-black bg-opacity-95 min-h-screen">
+            <div class="mb-8">
+                <img alt="Company Logo" class="mb-8" height="50" src="{{ url_for('static', filename='dist/img/AdminLTELogo.png') }}" width="150"/>
+            </div>
+            <h1 class="text-4xl font-bold mb-8">Sign In</h1>
+            <form method="POST" action="" class="w-full max-w-sm">
+                <!-- Protección CSRF -->
+                {{ form.hidden_tag() }}
+                <!-- Campo de Email -->
+                <div class="mb-4">
+                    <label class="block text-gray-500 text-sm font-bold mb-2" for="email">
+                        {{ form.email.label.text }}
+                    </label>
+                    <div class="flex items-center border border-gray-700 rounded px-3 py-2">
+                        <i class="fas fa-envelope text-gray-500 mr-2"></i>
+                        {{ form.email(class="bg-black text-white appearance-none w-full py-2 px-3 leading-tight focus:outline-none") }}
+                        {% for error in form.email.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <!-- Campo de Contraseña -->
+                <div class="mb-6">
+                    <label class="block text-gray-500 text-sm font-bold mb-2" for="password">
+                        {{ form.password.label.text }}
+                    </label>
+                    <div class="flex items-center border border-gray-700 rounded px-3 py-2">
+                        <i class="fas fa-lock text-gray-500 mr-2"></i>
+                        {{ form.password(class="bg-black text-white appearance-none w-full py-2 px-3 leading-tight focus:outline-none", placeholder="Enter Password") }}
+                        {% for error in form.password.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <!-- Enlace de "Forgot Password" -->
+                <div class="mb-6">
+                    <a class="text-blue-500 text-sm" href="#">FORGOT PASSWORD?</a>
+                </div>
+                <!-- Botón de Submit -->
+                <div class="mb-6">
+                    {{ form.submit(class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none") }}
+                </div>
+                <!-- Enlace de Registro -->
+                <div class="text-center">
+                    <p class="text-gray-500 text-sm">
+                        Don't have an account?
+                        <a class="text-white" href="{{ url_for('usuarios') }}">Sign up</a>
+                    </p>
+                </div>
+                <!-- Mensajes Flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} mt-4 p-3 rounded" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close" onclick="this.parentElement.style.display='none'">
+                                    <span aria-hidden="true">×</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </form>
+        </div>
+        <!-- Right Side (Opcional, ahora parte del fondo) -->
+        <!-- Este div se puede eliminar ya que la imagen ahora es el fondo total -->
+    </div>
+</body>
+</html>

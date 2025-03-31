@@ -269,10 +269,26 @@ def logout():
 @app.route('/')
 @login_required
 def home():
-    fecha_inicio_mes = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # Obtener parámetros de fecha desde la URL, si existen
+    fecha_inicio = request.args.get('fecha_inicio')
+    fecha_fin = request.args.get('fecha_fin')
+
+    if fecha_inicio and fecha_fin:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc)
+        except ValueError:
+            flash("Formato de fecha inválido. Use YYYY-MM-DD.", "danger")
+            fecha_inicio = None
+            fecha_fin = None
+    else:
+        fecha_inicio = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        fecha_fin = datetime.now(timezone.utc)
+
     pedidos_completados = Pedido.query.filter(
         Pedido.estado == 'completado',
-        Pedido.fecha >= fecha_inicio_mes
+        Pedido.fecha >= fecha_inicio,
+        Pedido.fecha <= fecha_fin
     ).all()
     total_ventas = sum(
         sum(pedido_producto.producto.precio * pedido_producto.cantidad for pedido_producto in pedido.productos)
@@ -296,7 +312,7 @@ def home():
         )
         .join(PedidoProducto, Producto.id == PedidoProducto.producto_id)
         .join(Pedido, PedidoProducto.pedido_id == Pedido.id)
-        .filter(Pedido.estado == 'completado')
+        .filter(Pedido.estado == 'completado', Pedido.fecha >= fecha_inicio, Pedido.fecha <= fecha_fin)
         .group_by(Producto.id, Producto.nombre, Producto.precio)
         .order_by(func.sum(PedidoProducto.cantidad).desc())
         .limit(5)
@@ -318,6 +334,7 @@ def home():
             Pedido.estado,
             func.count(Pedido.id).label('total')
         )
+        .filter(Pedido.fecha >= fecha_inicio, Pedido.fecha <= fecha_fin)
         .group_by(Pedido.estado)
         .all()
     )
@@ -326,13 +343,14 @@ def home():
     # Ingresos por mes
     ingresos_por_mes = []
     fecha_actual = datetime.now(timezone.utc)
-    for i in range(6):
-        mes_inicio = (fecha_actual - relativedelta(months=i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        mes_fin = mes_inicio + relativedelta(months=1) - timedelta(seconds=1)
+    mes_inicio = fecha_inicio if fecha_inicio else (fecha_actual - relativedelta(months=5)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    mes_fin = fecha_fin if fecha_fin else fecha_actual
+    while mes_inicio <= mes_fin:
+        mes_fin_mes = mes_inicio + relativedelta(months=1) - timedelta(seconds=1)
         pedidos_mes = Pedido.query.filter(
             Pedido.estado == 'completado',
             Pedido.fecha >= mes_inicio,
-            Pedido.fecha <= mes_fin
+            Pedido.fecha <= min(mes_fin_mes, mes_fin)
         ).all()
         ingreso_mes = sum(
             sum(pedido_producto.producto.precio * pedido_producto.cantidad for pedido_producto in pedido.productos)
@@ -342,20 +360,23 @@ def home():
             'mes': mes_inicio.strftime('%B %Y'),
             'ingreso': float(ingreso_mes)
         })
+        mes_inicio = mes_fin_mes + timedelta(seconds=1)
 
-    # Clientes nuevos por mes (últimos 6 meses)
+    # Clientes nuevos por mes
     clientes_nuevos_por_mes = []
-    for i in range(6):
-        mes_inicio = (fecha_actual - relativedelta(months=i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        mes_fin = mes_inicio + relativedelta(months=1) - timedelta(seconds=1)
+    mes_inicio = fecha_inicio if fecha_inicio else (fecha_actual - relativedelta(months=5)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    mes_fin = fecha_fin if fecha_fin else fecha_actual
+    while mes_inicio <= mes_fin:
+        mes_fin_mes = mes_inicio + relativedelta(months=1) - timedelta(seconds=1)
         clientes_mes = Cliente.query.filter(
             Cliente.fecha_registro >= mes_inicio,
-            Cliente.fecha_registro <= mes_fin
+            Cliente.fecha_registro <= min(mes_fin_mes, mes_fin)
         ).count()
         clientes_nuevos_por_mes.append({
             'mes': mes_inicio.strftime('%B %Y'),
             'clientes': int(clientes_mes)
         })
+        mes_inicio = mes_fin_mes + timedelta(seconds=1)
 
     # Alertas de stock por producto
     productos_bajo_stock = Producto.query.filter(Producto.stock < umbral_stock).all()
@@ -377,7 +398,9 @@ def home():
                          pedidos_por_estado=pedidos_por_estado,
                          ingresos_por_mes=ingresos_por_mes,
                          clientes_nuevos_por_mes=clientes_nuevos_por_mes,
-                         alertas_stock_por_producto=alertas_stock_por_producto)
+                         alertas_stock_por_producto=alertas_stock_por_producto,
+                         fecha_inicio=fecha_inicio.strftime('%Y-%m-%d') if fecha_inicio else '',
+                         fecha_fin=fecha_fin.strftime('%Y-%m-%d') if fecha_fin else '')
 
 
 @app.route('/clientes', methods=['GET', 'POST'])
